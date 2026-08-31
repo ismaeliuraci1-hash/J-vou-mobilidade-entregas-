@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: javou-piloto
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    envVars:
+      - key: JAVOU_HOST
+        value: 0.0.0.0
+      - key: JAVOU_ADMIN_KEY
+        sync: false
+      - key: JAVOU_PLATFORM_PIX_KEY
+        value: ismaeliuraci1@gmail.com
+      - key: MERCADOPAGO_ACCESS_TOKEN
+        sync: false
