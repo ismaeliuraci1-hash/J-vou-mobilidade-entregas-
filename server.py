@@ -273,6 +273,20 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Content-Length", str(len(data)))
             self.end_headers(); self.wfile.write(data); return
+        assets = {
+            "/manifest.json": ("manifest.json", "application/manifest+json; charset=utf-8"),
+            "/service-worker.js": ("service-worker.js", "application/javascript; charset=utf-8"),
+            "/icon-192.png": ("icon-192.png", "image/png"),
+            "/icon-512.png": ("icon-512.png", "image/png")
+        }
+        if path in assets:
+            filename, content_type = assets[path]
+            data = (ROOT / filename).read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", content_type)
+            self.send_header("Cache-Control", "no-cache" if filename in {"manifest.json", "service-worker.js"} else "public, max-age=86400")
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers(); self.wfile.write(data); return
         self.send_error(404)
 
     def do_POST(self):
