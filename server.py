@@ -12,6 +12,7 @@ import math
 import os
 import re
 import secrets
+import traceback
 import sqlite3
 
 try:
@@ -238,7 +239,7 @@ class Handler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         if path == "/api/health":
             conn = db(); conn.close()
-            return json_response(self, 200, {"ok": True, "service": "javou-api"})
+            return json_response(self, 200, {"ok": True, "service": "javou-api", "database": "postgres" if USE_POSTGRES else "sqlite"})
         if path == "/api/me":
             token = self.headers.get("Authorization", "").removeprefix("Bearer ")
             conn = db(); user = user_for_token(conn, token); conn.close()
@@ -352,6 +353,14 @@ class Handler(BaseHTTPRequestHandler):
         self.send_error(404)
 
     def do_POST(self):
+        try:
+            return self._do_POST()
+        except Exception as exc:
+            traceback.print_exc()
+            if not self.wfile.closed:
+                return json_response(self, 500, {"error": "Não foi possível processar a solicitação agora. Tente novamente."})
+
+    def _do_POST(self):
         path = urlparse(self.path).path
         try:
             length = int(self.headers.get("Content-Length", 0))
