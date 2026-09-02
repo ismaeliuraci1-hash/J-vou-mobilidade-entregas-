@@ -183,6 +183,12 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/health":
             conn = db(); conn.close()
             return json_response(self, 200, {"ok": True, "service": "javou-api"})
+        if path == "/api/me":
+            token = self.headers.get("Authorization", "").removeprefix("Bearer ")
+            conn = db(); user = user_for_token(conn, token); conn.close()
+            if not user:
+                return json_response(self, 401, {"error": "Sessão inválida ou expirada."})
+            return json_response(self, 200, {"user": {"id": user["id"], "name": user["name"], "city": user["city"], "role": user["role"], "status": user["status"]}})
         if path == "/api/admin/users":
             if self.headers.get("X-Admin-Key") != ADMIN_KEY:
                 return json_response(self, 401, {"error": "Acesso administrativo não autorizado."})
