@@ -10,6 +10,7 @@ import hmac
 import json
 import math
 import os
+import re
 import secrets
 import sqlite3
 import time
@@ -130,6 +131,13 @@ def db():
     )""")
     conn.commit()
     return conn
+
+
+def normalize_phone(value):
+    digits = re.sub(r"\D", "", str(value or ""))
+    if digits.startswith("55") and len(digits) in {12, 13}:
+        digits = digits[2:]
+    return digits
 
 
 def hash_password(password, salt=None):
@@ -474,7 +482,7 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/register":
 
                 name = str(data.get("name", "")).strip()
-                phone = str(data.get("phone", "")).strip()
+                phone = normalize_phone(data.get("phone"))
                 email = str(data.get("email", "")).strip().lower() or None
                 password = str(data.get("password", ""))
                 city = str(data.get("city", "")).strip()
@@ -492,9 +500,18 @@ class Handler(BaseHTTPRequestHandler):
                 return json_response(self, 201, {"ok": True, "token": token, "user": {"id": cur.lastrowid, "name": name, "city": city, "role": role, "status": "pending" if role != "client" else "active"}})
 
             if path == "/api/login":
-                identifier = str(data.get("identifier", "")).strip().lower()
+                identifier_raw = str(data.get("identifier", "")).strip()
+                identifier = identifier_raw.lower()
                 password = str(data.get("password", ""))
-                row = conn.execute("SELECT * FROM users WHERE lower(phone)=? OR lower(email)=?", (identifier, identifier)).fetchone()
+                if "@" in identifier:
+                    row = conn.execute("SELECT * FROM users WHERE lower(email)=?", (identifier,)).fetchone()
+                else:
+                    phone = normalize_phone(identifier_raw)
+                    row = None
+                    for candidate in conn.execute("SELECT * FROM users"):
+                        if normalize_phone(candidate["phone"]) == phone:
+                            row = candidate
+                            break
                 if not row or not check_password(password, row["password_hash"]):
                     return json_response(self, 401, {"error": "Celular/e-mail ou senha inválidos."})
                 token = secrets.token_urlsafe(32)
