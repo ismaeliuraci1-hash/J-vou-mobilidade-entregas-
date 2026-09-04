@@ -361,7 +361,10 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as exc:
             traceback.print_exc()
             if not self.wfile.closed:
-                return json_response(self, 500, {"error": "Não foi possível processar a solicitação agora. Tente novamente."})
+                payload = {"error": "Não foi possível processar a solicitação agora. Tente novamente."}
+                if APP_ENV != "production":
+                    payload["debug"] = f"{type(exc).__name__}: {exc}"
+                return json_response(self, 500, payload)
 
     def _do_POST(self):
         path = urlparse(self.path).path
