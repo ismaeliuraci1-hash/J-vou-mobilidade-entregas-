@@ -35,7 +35,10 @@ except ImportError:
 
 ROOT = Path(__file__).parent
 DB = ROOT / "javou.sqlite3"
-DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
+DATABASE_URL_RAW = os.environ.get("DATABASE_URL", "").strip()
+# O serviço não pode cair se o Render tiver recebido um rótulo em vez da URL.
+# Só tenta PostgreSQL quando o valor tem formato de URL; caso contrário mantém o piloto online.
+DATABASE_URL = DATABASE_URL_RAW if DATABASE_URL_RAW.startswith(("postgresql://", "postgres://")) else ""
 USE_POSTGRES = bool(DATABASE_URL)
 HOST = os.environ.get("JAVOU_HOST", "127.0.0.1")
 PORT = int(os.environ.get("PORT", "18080"))
